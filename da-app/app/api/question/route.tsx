@@ -39,6 +39,27 @@ export async function POST(req: Request) {
         // Save to in-memory storage
         updateMemory(dataToSave);
 
+        // Check if memoryStore has more than 20 questions
+        const questionsCount = memoryStore.reduce((count, item) => item.question ? count + 1 : count, 0);
+        console.log(questionsCount, "cooked")
+        if (questionsCount >= 3) {
+            try {
+            await fetch("/cards", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(memoryStore),
+            });
+            console.log("Memory store sent to /api/cards");
+            } catch (error) {
+            console.error("Error sending memory store to /api/cards:", error);
+            }
+            // Clear the in-memory store after sending data
+            memoryStore = [];
+            console.log("Memory store cleared after sending to /api/cards");
+        }
+
         return NextResponse.json({ message: response.text });
     } catch (error) {
         console.error("Error processing request:", error);

@@ -5,14 +5,16 @@ import { NextResponse } from "next/server";
 const API_KEY = process.env.API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
+const component_prompt = "Data is given below. Format final answer as JSON Pairs. For each idea, create a JSON pair of that idea with the name of an appropriate react-icons icon.";
+
 // In-memory store for questions and responses
 let memoryStore = [];
 
-// Function to update in-memory storage with new data
 function updateMemory(dataToSave) {
     try {
-        memoryStore.push(dataToSave);
-        console.log("Current memory store:", memoryStore); // Log entire store
+        // Clear the existing memory store and replace it with the new data
+        memoryStore = [dataToSave];
+        console.log("Updated memory store:", memoryStore); // Log updated store
     } catch (err) {
         console.error("Error updating in-memory store:", err);
         throw err;
@@ -22,20 +24,17 @@ function updateMemory(dataToSave) {
 // Unified route to process memory and generate response
 export async function GET(req: Request) {
     try {
-        // Concatenate all questions and responses from memoryStore
-        const concatenatedData = memoryStore.map(item => `Q: ${item.question}\nA: ${item.response}`).join("\n\n");
-
-        // Use the concatenated data as the prompt for Gemini
+        // Fetch the response directly from Gemini without concatenating memoryStore
         const response = await ai.models.generateContent({
             model: "gemini-2.0-flash",
-            contents: concatenatedData || "No data available in memory.",
+            contents: component_prompt,
         });
 
         console.log("Gemini Response:", response.text);
 
-        // Optionally save the new response to memory
+        // Save the Gemini response into memory
         const dataToSave = {
-            question: "Generated from memory",
+            question: "Generated from Gemini",
             response: response.text,
         };
         updateMemory(dataToSave);
