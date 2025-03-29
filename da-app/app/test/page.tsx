@@ -47,8 +47,19 @@ export default function Home() {
 
     async function getCardsData() {
         try {
-            const response = await fetch('/api/cards', {
-                method: 'GET',
+            const testBody = {
+                query: "example query",
+                filters: {
+                    category: "example category",
+                },
+            };
+
+            const response = await fetch('/api/question/cards', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(testBody),
             });
 
             if (!response.ok) {
@@ -61,6 +72,26 @@ export default function Home() {
             console.error('Failed to fetch cards data:', error);
         }
     }
+
+    // Function to call the /api/question/cards/component endpoint
+    const handleComponentCall = async () => {
+        try {
+            const response = await fetch('/api/question/cards/component', {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Component data:', result); // Logs the component data
+            setAiResponse(JSON.stringify(result)); // Display the component data
+        } catch (error) {
+            console.error('Failed to fetch component data:', error);
+            setAiResponse('Error: Failed to fetch component data');
+        }
+    };
 
     return (
         <div>
@@ -83,6 +114,9 @@ export default function Home() {
 
             {/* Button to call getCardsData */}
             <button onClick={getCardsData}>Cards</button>
+
+            {/* Button to call handleComponentCall */}
+            <button onClick={handleComponentCall}>Component</button>
 
             {/* Display the response from AI */}
             <div>
