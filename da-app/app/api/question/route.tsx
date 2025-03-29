@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
+
 // Initialize Gemini API with API key
 const API_KEY = process.env.API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
         console.log(questionsCount, "cooked")
         if (questionsCount >= 3) {
             try {
-            await fetch("/cards", {
+            await fetch("http://localhost:3000/api/question/cards", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -56,8 +57,8 @@ export async function POST(req: Request) {
             console.error("Error sending memory store to /api/cards:", error);
             }
             // Clear the in-memory store after sending data
-            memoryStore = [];
-            console.log("Memory store cleared after sending to /api/cards");
+           // memoryStore = [];
+           // console.log("Memory store cleared after sending to /api/cards");
         }
 
         return NextResponse.json({ message: response.text });

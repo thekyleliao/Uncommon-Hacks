@@ -24,8 +24,23 @@ export async function POST(req: Request) {
 
         console.log("Gemini Response:", response.text);
 
-        // Return the generated response
-        return NextResponse.json({ generatedInfo: response.text });
+        // Send the response to the /api/question/cards/component endpoint
+        const componentResponse = await fetch("http://localhost:3000/api/question/cards/component", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body), // Send the original body as is
+        });
+
+        if (!componentResponse.ok) {
+            throw new Error(`Failed to send data to /api/question/cards/component: ${componentResponse.statusText}`);
+        }
+
+        const componentResponseData = await componentResponse.json();
+
+        // Return the response from the /component endpoint
+        return NextResponse.json({ componentResponse: componentResponseData });
     } catch (error) {
         console.error("Error processing request:", error);
         return NextResponse.json({ error: "Failed to process request" }, { status: 500 });

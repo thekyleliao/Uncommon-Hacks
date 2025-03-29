@@ -22,19 +22,26 @@ function updateMemory(dataToSave) {
 }
 
 // Unified route to process memory and generate response
-export async function GET(req: Request) {
+export async function POST(req: Request) {
     try {
-        // Fetch the response directly from Gemini without concatenating memoryStore
+        // Parse the body of the POST request
+        const body = await req.json();
+        const rawData = body.data;
+
+        // Concatenate the component prompt with the raw data
+        const prompt = `${component_prompt}\n\n${rawData}`;
+
+        // Fetch the response from Gemini
         const response = await ai.models.generateContent({
             model: "gemini-2.0-flash",
-            contents: component_prompt,
+            contents: prompt,
         });
 
         console.log("Gemini Response:", response.text);
 
         // Save the Gemini response into memory
         const dataToSave = {
-            question: "Generated from Gemini",
+            question: rawData,
             response: response.text,
         };
         updateMemory(dataToSave);
