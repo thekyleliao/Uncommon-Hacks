@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 // FontAwesome icons
 import { 
@@ -197,17 +198,34 @@ export default function MedicalAACGrid() {
 
   const [selectedCategory, setSelectedCategory] = useState("Basic Needs");
   const [medicalData, setMedicalData] = useState(JSON.parse(JSON.stringify(initialMedicalData)));
-  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
 
   const currentWords = medicalData[selectedCategory];
+  const searchParams = useSearchParams();
 
-  const handleCategoryClick = (category) => {
+  // On mount, override the "Patient Specific" grid if patientData query exists
+  useEffect(() => {
+    const patientDataParam = searchParams.get("patientData");
+    if (patientDataParam) {
+      try {
+        const parsedPatientData = JSON.parse(patientDataParam);
+        setMedicalData(prev => ({
+          ...prev,
+          "Patient Specific": parsedPatientData,
+        }));
+      } catch (e) {
+        console.error("Error parsing patientData", e);
+      }
+    }
+  }, [searchParams]);
+
+  const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
     setEditingIndex(null);
   };
 
-  const handleWordClick = (word, index) => {
+  const handleWordClick = (word: string, index: number) => {
     if (editingIndex !== null || !word) return;
     
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -216,21 +234,21 @@ export default function MedicalAACGrid() {
     }
   };
 
-  const startEditing = (index) => {
+  const startEditing = (index: number) => {
     setEditingIndex(index);
     setEditValue(currentWords[index] || "");
   };
 
   const saveEdit = () => {
     const newWords = [...currentWords];
-    newWords[editingIndex] = editValue;
-    
-    setMedicalData(prev => ({
-      ...prev,
-      [selectedCategory]: newWords
-    }));
-    
-    setEditingIndex(null);
+    if (editingIndex !== null) {
+      newWords[editingIndex] = editValue;
+      setMedicalData(prev => ({
+        ...prev,
+        [selectedCategory]: newWords
+      }));
+      setEditingIndex(null);
+    }
   };
 
   const resetAll = () => {

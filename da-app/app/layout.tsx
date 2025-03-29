@@ -32,3 +32,21 @@ export default function RootLayout({
     </html>
   );
 }
+
+import { PatientProvider } from '../context/patientcontext';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <PatientProvider>
+          {children}
+        </PatientProvider>
+      </body>
+    </html>
+  );
+}
