@@ -20,7 +20,7 @@ function updateMemory(dataToSave) {
 }
 
 // Unified route to process memory and generate response
-export async function POST(req: Request) {
+export async function GET(req: Request) {
     try {
         // Concatenate all questions and responses from memoryStore
         const concatenatedData = memoryStore.map(item => `Q: ${item.question}\nA: ${item.response}`).join("\n\n");

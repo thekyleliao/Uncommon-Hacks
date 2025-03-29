@@ -46,12 +46,20 @@ export default function Home() {
     };
 
     async function getCardsData() {
-        const response = await fetch('/api/cards', {
-            method: 'GET',
-        });
-    
-        const result = await response.json();
-        console.log('Related topics:', result.relatedTopics); // Logs the topics from Gemini
+        try {
+            const response = await fetch('/api/cards', {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Related topics:', result.relatedTopics); // Logs the topics from Gemini
+        } catch (error) {
+            console.error('Failed to fetch cards data:', error);
+        }
     }
 
     return (
