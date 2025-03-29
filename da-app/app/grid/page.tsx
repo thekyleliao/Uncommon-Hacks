@@ -53,7 +53,7 @@ import { GiStomach, GiElbowPad, GiBarefoot, GiMorgueFeet, GiShoulderArmor } from
 import { TbHandFinger } from "react-icons/tb";
 // Ionicons
 import { IoEarOutline } from "react-icons/io5";
-
+import { BsPersonStanding } from "react-icons/bs";
 // Material Design icons for emotions
 import { MdSentimentVeryDissatisfied, MdSentimentSatisfied, MdMoodBad, MdHelpOutline } from "react-icons/md";
 
@@ -153,7 +153,7 @@ export default function MedicalAACGrid() {
     "Draw": <FaPaintBrush className="text-pink-400" size={24} />,
     "Listen": <FaHeadphones className="text-gray-400" size={24} />,
     "Speak": <FaComment className="text-gray-400" size={24} />,
-    "Stand": <FaUser className="text-gray-400" size={24} />,
+    "Stand": <BsPersonStanding className="text-gray-400" size={24} />,
     "Sit": <FaChair className="text-gray-500" size={24} />,
     "Lie down": <FaBed className="text-purple-300" size={24} />,
     "Turn": <FaSyncAlt className="text-gray-500" size={24} />,
