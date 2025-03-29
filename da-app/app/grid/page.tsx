@@ -94,7 +94,7 @@ export default function MedicalAACGrid() {
     "Stomach": <GiStomach className="text-yellow-300" size={24} />,
     "Back": <FaBone className="text-blue-300" size={24} />,
     "Throat": <FaComment className="text-gray-400" size={24} />,
-    "Eye": <FaEye className="text-blue-400" size={24} />, // alternative choice
+    "Eye": <FaEye className="text-blue-400" size={24} />,
     "Ear": <IoEarOutline className="text-orange-300" size={24} />,
     "Mouth": <FaSmile className="text-orange-400" size={24} />,
     "Neck": <FaBone className="text-blue-300" size={24} />,
@@ -148,7 +148,7 @@ export default function MedicalAACGrid() {
     "Brush teeth": <FaTooth className="text-white" size={24} />,
     "Get dressed": <FaTshirt className="text-blue-300" size={24} />,
     "Exercise": <FaRunning className="text-green-500" size={24} />,
-    "Meditate": <FaHeadSideCough className="text-purple-300" size={24} />, // alternative; you might choose another icon here
+    "Meditate": <FaHeadSideCough className="text-purple-300" size={24} />,
     "Write": <FaPen className="text-gray-500" size={24} />,
     "Draw": <FaPaintBrush className="text-pink-400" size={24} />,
     "Listen": <FaHeadphones className="text-gray-400" size={24} />,
@@ -165,8 +165,7 @@ export default function MedicalAACGrid() {
     "Relax": <FaSpa className="text-green-400" size={24} />
   };
 
-  // Only the four categories you need
-  const medicalData = {
+  const initialMedicalData = {
     "Basic Needs": [
       "Water", "Food", "Bathroom", "Rest", "Help", "Medicine", 
       "Blanket", "Clothes", "Wash", "Air", "Light", "Temperature",
@@ -192,28 +191,52 @@ export default function MedicalAACGrid() {
       "Draw", "Listen", "Speak", "Stand", "Sit", "Lie down", "Turn",
       "Breathe", "Cough", "Swallow", "Stretch", "Massage", "Relax"
     ],
-    "Patient Specific": Array(24).fill().map((_, i) => `Custom ${i + 1}`)
+    "Patient Specific": Array(24).fill().map((_, i) => `Custom ${i + 1}`),
+    "Custom": Array(24).fill("") // Empty custom slots
   };
 
   const [selectedCategory, setSelectedCategory] = useState("Basic Needs");
-  const [currentWords, setCurrentWords] = useState(medicalData["Basic Needs"]);
+  const [medicalData, setMedicalData] = useState(JSON.parse(JSON.stringify(initialMedicalData)));
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editValue, setEditValue] = useState("");
+
+  const currentWords = medicalData[selectedCategory];
 
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
-    setCurrentWords(medicalData[category]);
+    setEditingIndex(null);
   };
 
-  const handleWordClick = (word) => {
+  const handleWordClick = (word, index) => {
+    if (editingIndex !== null || !word) return;
+    
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(word);
       window.speechSynthesis.speak(utterance);
     }
+  };
 
-    if (selectedCategory === "Patient Specific") {
-      const specializedWords = Array(24).fill().map((_, i) => 
-        `${word} ${i + 1}`
-      );
-      setCurrentWords(specializedWords);
+  const startEditing = (index) => {
+    setEditingIndex(index);
+    setEditValue(currentWords[index] || "");
+  };
+
+  const saveEdit = () => {
+    const newWords = [...currentWords];
+    newWords[editingIndex] = editValue;
+    
+    setMedicalData(prev => ({
+      ...prev,
+      [selectedCategory]: newWords
+    }));
+    
+    setEditingIndex(null);
+  };
+
+  const resetAll = () => {
+    if (confirm("Are you sure you want to reset all boxes to their default values?")) {
+      setMedicalData(JSON.parse(JSON.stringify(initialMedicalData)));
+      setEditingIndex(null);
     }
   };
 
@@ -224,6 +247,12 @@ export default function MedicalAACGrid() {
         <Link href="/" className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors">
           ← MEDICAL AAC
         </Link>
+        <button 
+          onClick={resetAll}
+          className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors"
+        >
+          RESET ALL
+        </button>
         <button onClick={() => window.print()} className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors">
           PRINT
         </button>
@@ -251,22 +280,73 @@ export default function MedicalAACGrid() {
         {/* Word Grid (6 rows x 4 columns) */}
         <div className="flex-1 grid grid-cols-4 grid-rows-6 gap-3 p-4 ml-4">
           {currentWords.map((word, index) => (
-            <button
+            <div
               key={`${selectedCategory}-${index}`}
-              onClick={() => handleWordClick(word)}
-              className="border-2 border-gray-700 rounded-lg p-2 flex flex-col items-center justify-center 
+              className={`border-2 rounded-lg p-2 flex flex-col items-center justify-center 
                 hover:border-white hover:bg-gray-900 transition-all duration-200
-                h-full min-h-[90px]"
+                h-full min-h-[90px] relative
+                ${word ? "border-gray-700" : "border-dashed border-gray-500"}`}
+              onClick={() => handleWordClick(word, index)}
             >
-              {iconMap[word] && (
-                <div className="mb-1">
-                  {iconMap[word]}
+              {editingIndex === index ? (
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="w-full bg-gray-800 text-white text-center font-bold mb-2 p-1"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEdit();
+                      if (e.key === 'Escape') setEditingIndex(null);
+                    }}
+                  />
+                  <div className="flex justify-center space-x-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveEdit();
+                      }}
+                      className="px-2 py-1 bg-green-600 rounded text-sm"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingIndex(null);
+                      }}
+                      className="px-2 py-1 bg-red-600 rounded text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {/* Show icon only for original words in non-custom categories */}
+                  {selectedCategory !== "Custom" && 
+                   initialMedicalData[selectedCategory][index] === word && 
+                   iconMap[word] && (
+                    <div className="mb-1">
+                      {iconMap[word]}
+                    </div>
+                  )}
+                  <span className="text-lg font-bold tracking-tight text-center break-words max-w-full">
+                    {word ? word.toUpperCase() : "[EMPTY]"}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(index);
+                    }}
+                    className="absolute top-1 right-1 text-xs bg-gray-700 px-1 rounded opacity-0 hover:opacity-100 transition-opacity"
+                  >
+                    Edit
+                  </button>
+                </>
               )}
-              <span className="text-lg font-bold tracking-tight text-center">
-                {word.toUpperCase()}
-              </span>
-            </button>
+            </div>
           ))}
         </div>
       </div>
