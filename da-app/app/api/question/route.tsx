@@ -21,7 +21,7 @@ function updateMemory(dataToSave) {
 
 // Helper function for the cards logic
 async function processCards(rawData) {
-    const component_prompt = "Data is given below. The data is formatted as questions and answers. You will come up with a list of 20 short ideas(1-5 words) related to these questions and answers. Format final answer as JSON LIST.";
+    const component_prompt = "Data is given below. The data is formatted as questions and answers. You will come up with a list of 24 short ideas(1-5 words) related to these questions and answers. Format final answer as JSON LIST.";
 
     const prompt = `${component_prompt}\n\n${rawData}`;
     const response = await ai.models.generateContent({
@@ -70,19 +70,24 @@ export async function POST(req: Request) {
         const questionsCount = memoryStore.reduce((count, item) => (item.question ? count + 1 : count), 0);
         console.log(questionsCount, "cooked");
 
-        if (questionsCount >= 3) {
+        let componentResponse = null;
+
+        if (questionsCount >= 1) {
             try {
                 const cardsResponse = await processCards(JSON.stringify(memoryStore));
                 console.log("Cards Processed:", cardsResponse);
 
-                const componentResponse = await processComponent(cardsResponse);
+                componentResponse = await processComponent(cardsResponse);
                 console.log("Component Processed:", componentResponse);
             } catch (error) {
                 console.error("Error processing cards or component:", error);
             }
         }
 
-        return NextResponse.json({ message: response.text });
+        return NextResponse.json({ 
+            message: componentResponse  
+            
+        });
     } catch (error) {
         console.error("Error processing request:", error);
         return NextResponse.json({ error: "Failed to get AI response" }, { status: 500 });
