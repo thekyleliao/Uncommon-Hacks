@@ -248,10 +248,18 @@ function GridContent() {
 
   const handleWordClick = (word: string, index: number): void => {
     if (editingIndex !== null || !word) return;
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      const utterance = new SpeechSynthesisUtterance(word);
-      window.speechSynthesis.speak(utterance);
-    }
+    
+    // Create and configure the speech utterance
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.rate = 0.9; // Slightly slower rate for better clarity
+    utterance.pitch = 1.0; // Normal pitch
+    utterance.volume = 1.0; // Full volume
+    
+    // Stop any ongoing speech before starting new one
+    window.speechSynthesis.cancel();
+    
+    // Speak the word
+    window.speechSynthesis.speak(utterance);
   };
 
   const startEditing = (index: number): void => {
