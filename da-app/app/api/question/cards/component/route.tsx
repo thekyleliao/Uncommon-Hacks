@@ -15,7 +15,7 @@ interface MemoryData {
 // In-memory store for questions and responses
 let memoryStore: MemoryData[] = [];
 
-function updateMemory(dataToSave: MemoryData): void {
+const updateMemory = (dataToSave: MemoryData): void => {
     try {
         // Clear the existing memory store and replace it with the new data
         memoryStore = [dataToSave];
