@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 
 // Initialize Gemini API with API key
 const API_KEY = process.env.API_KEY;
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+if (!API_KEY) {
+    console.error("API_KEY is not set in environment variables");
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY || "" });
 
 interface MemoryData {
     question: string;
-    response: string | undefined;
+    response: string;
 }
 
 // In-memory store for questions and responses
@@ -24,41 +28,113 @@ function updateMemory(dataToSave: MemoryData): void {
     }
 }
 
-// Helper function for the cards logic
-async function processCards(rawData: string): Promise<string | undefined> {
-    const component_prompt = "Data is given below. The data is formatted as questions and answers. You will come up with a list of 24 short ideas(1-5 words) related to these questions and answers. Format final answer as JSON LIST.";
-
-    const prompt = `${component_prompt}\n\n${rawData}`;
-    const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: prompt,
-    });
-
-    console.log("Cards Helper Response:", response.text);
-    return response.text;
+// Retry logic for API calls
+async function retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelay: number = 1000
+): Promise<T> {
+    let lastError: Error | undefined;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+            if (attempt < maxRetries - 1) {
+                const delay = initialDelay * Math.pow(2, attempt);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+    
+    throw lastError;
 }
 
-// Helper function for the component logic
+// Helper function for the cards logic with timeout and retry
+async function processCards(rawData: string): Promise<string | undefined> {
+    try {
+        const component_prompt = "Generate 24 short treatment ideas (1-5 words) based on these Q&A. Format as JSON list.";
+        const prompt = `${component_prompt}\n\n${rawData}`;
+        
+        const response = await retryWithBackoff(async () => {
+            return await Promise.race([
+                ai.models.generateContent({
+                    model: "gemini-2.0-flash",
+                    contents: prompt,
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Request timeout")), 5000)
+                )
+            ]) as { text: string };
+        });
+
+        console.log("Cards Helper Response:", response.text);
+        return response.text;
+    } catch (error) {
+        console.error("Error in processCards:", error);
+        return undefined;
+    }
+}
+
+// Helper function for the component logic with timeout and retry
 async function processComponent(rawData: string): Promise<string | undefined> {
-    const component_prompt = "Data is given below. For each idea, create a JSON List with 24 appropriate words. Be less scientific. Be more patient friendly.";
+    try {
+        const component_prompt = "Create 24 patient-friendly treatment words based on these ideas. Format as JSON list.";
+        const prompt = `${component_prompt}\n\n${rawData}`;
+        
+        const response = await retryWithBackoff(async () => {
+            return await Promise.race([
+                ai.models.generateContent({
+                    model: "gemini-2.0-flash",
+                    contents: prompt,
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Request timeout")), 5000)
+                )
+            ]) as { text: string };
+        });
 
-    const prompt = `${component_prompt}\n\n${rawData}`;
-    const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: prompt,
-    });
-
-    console.log("Component Helper Response:", response.text);
-    return response.text;
+        console.log("Component Helper Response:", response.text);
+        return response.text;
+    } catch (error) {
+        console.error("Error in processComponent:", error);
+        return undefined;
+    }
 }
 
 // Handle POST request for questions
 export async function POST(req: Request) {
     try {
+        if (!API_KEY) {
+            console.error("API_KEY is not set");
+            return NextResponse.json(
+                { error: "API key is not configured" },
+                { status: 500 }
+            );
+        }
+
         const { prompt } = await req.json();
-        const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
-            contents: prompt || "What is AI?",
+        
+        // Check cache for similar questions
+        const cachedResponse = memoryStore.find(item => 
+            item.question.toLowerCase() === prompt.toLowerCase()
+        );
+        
+        if (cachedResponse) {
+            return NextResponse.json({ message: cachedResponse.response });
+        }
+
+        const response = await retryWithBackoff(async () => {
+            return await Promise.race([
+                ai.models.generateContent({
+                    model: "gemini-2.0-flash",
+                    contents: prompt || "What is AI?",
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Request timeout")), 5000)
+                )
+            ]) as { text: string };
         });
 
         console.log("AI Response:", response.text);
@@ -79,7 +155,7 @@ export async function POST(req: Request) {
 
         if (questionsCount >= 1) {
             try {
-                const cardsResponse = await processCards(JSON.stringify(memoryStore));
+                const cardsResponse = await processCards(JSON.stringify([dataToSave]));
                 console.log("Cards Processed:", cardsResponse);
 
                 if (cardsResponse) {
@@ -92,11 +168,17 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ 
-            message: componentResponse  
+            message: componentResponse || "Processing incomplete" 
         });
     } catch (error) {
         console.error("Error processing request:", error);
-        return NextResponse.json({ error: "Failed to get AI response" }, { status: 500 });
+        return NextResponse.json(
+            { 
+                error: "Failed to process request",
+                details: error instanceof Error ? error.message : "Unknown error"
+            },
+            { status: 500 }
+        );
     }
 }
 
