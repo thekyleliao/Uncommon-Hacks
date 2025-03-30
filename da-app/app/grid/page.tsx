@@ -199,6 +199,7 @@ export default function MedicalAACGrid() {
 
   const currentWords = medicalData[selectedCategory];
 
+
   // On mount, if survey responses exist, process them via API
   useEffect(() => {
     const patientDataParam = searchParams.get("patientData");
@@ -221,8 +222,8 @@ export default function MedicalAACGrid() {
           if (res.ok && data.message) {
             // Assume the API returns a comma-separated string or an array of words
             const words = typeof data.message === "string"
-              ? data.message.split(",").map(word => word.trim())
-              : data.message;
+              ? data.message.match(/"([^"]+)"/g)?.map(word => word.replace(/"/g, "").trim()) || []
+              : [];
             setMedicalData(prev => ({
               ...prev,
               "Patient Specific": words.slice(0, 24)

@@ -35,7 +35,7 @@ async function processCards(rawData) {
 
 // Helper function for the component logic
 async function processComponent(rawData) {
-    const component_prompt = "Data is given below. Format final answer as JSON Pairs. For each idea, create a JSON pair of that idea with the name of an appropriate react-icons icon.";
+    const component_prompt = "Data is given below. For each idea, create a JSON List with 24 appropriate words. Be less scientific. Be more patient friendly.";
 
     const prompt = `${component_prompt}\n\n${rawData}`;
     const response = await ai.models.generateContent({

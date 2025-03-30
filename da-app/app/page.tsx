@@ -158,7 +158,7 @@ const Home = () => {
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 text-center">
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white">
-            Your Practice Name
+            MedBoard.Design
           </h1>
           <p className="text-xl sm:text-2xl text-gray-200 mt-4">
             Patient communication done better
