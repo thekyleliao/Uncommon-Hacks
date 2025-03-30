@@ -24,3 +24,52 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Print styles */
+@media print {
+  /* Hide the sidebar */
+  .w-48 {
+    display: none !important;
+  }
+
+  /* Adjust the main content area */
+  .flex-1 {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  /* Hide the header buttons except print */
+  header button:not(:last-child) {
+    display: none !important;
+  }
+
+  /* Ensure the grid takes full width */
+  .grid {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Optimize text colors for printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Ensure cards are visible in print */
+  .bg-gray-900 {
+    background: white !important;
+    border: 1px solid #ddd !important;
+  }
+
+  /* Make text more readable in print */
+  .text-gray-400,
+  .text-gray-300,
+  .text-gray-500 {
+    color: #666 !important;
+  }
+
+  /* Ensure icons are visible */
+  svg {
+    fill: currentColor !important;
+  }
+}
