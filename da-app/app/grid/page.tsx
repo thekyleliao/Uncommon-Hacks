@@ -1,7 +1,10 @@
 "use client";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { MedicalData, MedicalCategory } from "@/types";
+import type { ReactElement } from "react";
 
 // FontAwesome icons
 import {
@@ -58,39 +61,8 @@ import { BsPersonStanding } from "react-icons/bs";
 // Material Design icons for emotions
 import { MdSentimentVeryDissatisfied, MdSentimentSatisfied, MdMoodBad, MdHelpOutline } from "react-icons/md";
 
-// Initial grid data
-const initialMedicalData = {
-  "Basic Needs": [
-    "Water", "Food", "Bathroom", "Rest", "Help", "Medicine",
-    "Blanket", "Clothes", "Wash", "Air", "Light", "Temperature",
-    "Sleep", "Position", "Privacy", "Comfort", "Oxygen", "Support",
-    "Emergency", "Clean", "Quiet", "Stretcher", "Wheelchair", "Assistance"
-  ],
-  "Body Parts": [
-    "Head", "Arm", "Leg", "Chest", "Stomach", "Back", "Throat",
-    "Eye", "Ear", "Mouth", "Neck", "Shoulder", "Elbow", "Hand",
-    "Finger", "Hip", "Knee", "Foot", "Toe", "Skin", "Heart",
-    "Lungs", "Teeth", "Brain"
-  ],
-  "Emotions": [
-    "Happy", "Sad", "Angry", "Anxious", "Scared", "Frustrated",
-    "Tired", "Confused", "Relieved", "Worried", "Hopeful", "Lonely",
-    "Overwhelmed", "Peaceful", "Uncomfortable", "Embarrassed",
-    "Grateful", "Impatient", "Nervous", "Pained", "Restless",
-    "Secure", "Tense", "Vulnerable"
-  ],
-  "Daily Activities": [
-    "Walk", "Eat", "Sleep", "Read", "Watch TV", "Shower",
-    "Brush teeth", "Get dressed", "Exercise", "Meditate", "Write",
-    "Draw", "Listen", "Speak", "Stand", "Sit", "Lie down", "Turn",
-    "Breathe", "Cough", "Swallow", "Stretch", "Massage", "Relax"
-  ],
-  "Patient Specific": Array(24).fill().map((_, i) => `Custom ${i + 1}`),
-  "Custom": Array(24).fill("")
-};
-
 // Icon mapping
-const iconMap: Record<string, JSX.Element> = {
+const iconMap: Record<string, ReactElement> = {
   "Water": <FaTint className="text-blue-400" size={24} />,
   "Food": <FaUtensils className="text-yellow-500" size={24} />,
   "Bathroom": <FaToilet className="text-gray-400" size={24} />,
@@ -165,7 +137,6 @@ const iconMap: Record<string, JSX.Element> = {
   "Vulnerable": <FaFrown className="text-gray-500" size={24} />,
   "Walk": <FaWalking className="text-green-400" size={24} />,
   "Eat": <FaUtensils className="text-yellow-400" size={24} />,
-  "Sleep": <FaBed className="text-purple-300" size={24} />,
   "Read": <FaBook className="text-blue-200" size={24} />,
   "Watch TV": <FaTv className="text-blue-400" size={24} />,
   "Shower": <FaShower className="text-blue-300" size={24} />,
@@ -189,16 +160,46 @@ const iconMap: Record<string, JSX.Element> = {
   "Relax": <FaSpa className="text-green-400" size={24} />
 };
 
-export default function MedicalAACGrid() {
-  const [selectedCategory, setSelectedCategory] = useState("Basic Needs");
-  const [medicalData, setMedicalData] = useState(JSON.parse(JSON.stringify(initialMedicalData)));
+const initialMedicalData: MedicalData = {
+  "Basic Needs": [
+    "Water", "Food", "Bathroom", "Rest", "Help", "Medicine",
+    "Blanket", "Clothes", "Wash", "Air", "Light", "Temperature",
+    "Sleep", "Position", "Privacy", "Comfort", "Oxygen", "Support",
+    "Emergency", "Clean", "Quiet", "Stretcher", "Wheelchair", "Assistance"
+  ],
+  "Body Parts": [
+    "Head", "Arm", "Leg", "Chest", "Stomach", "Back", "Throat",
+    "Eye", "Ear", "Mouth", "Neck", "Shoulder", "Elbow", "Hand",
+    "Finger", "Hip", "Knee", "Foot", "Toe", "Skin", "Heart",
+    "Lungs", "Teeth", "Brain"
+  ],
+  "Emotions": [
+    "Happy", "Sad", "Angry", "Anxious", "Scared", "Frustrated",
+    "Tired", "Confused", "Relieved", "Worried", "Hopeful", "Lonely",
+    "Overwhelmed", "Peaceful", "Uncomfortable", "Embarrassed",
+    "Grateful", "Impatient", "Nervous", "Pained", "Restless",
+    "Secure", "Tense", "Vulnerable"
+  ],
+  "Actions": [
+    "Walk", "Eat", "Sleep", "Read", "Watch TV", "Shower",
+    "Brush teeth", "Get dressed", "Exercise", "Meditate", "Write",
+    "Draw", "Listen", "Speak", "Stand", "Sit", "Lie down", "Turn",
+    "Breathe", "Cough", "Swallow", "Stretch", "Massage", "Relax"
+  ],
+  "Patient Specific": Array(24).fill("").map((_, i) => `Custom ${i + 1}`),
+  "Custom": Array(24).fill("")
+};
+
+// Create a client component that uses useSearchParams
+function GridContent() {
+  const [selectedCategory, setSelectedCategory] = useState<MedicalCategory>("Basic Needs");
+  const [medicalData, setMedicalData] = useState<MedicalData>(JSON.parse(JSON.stringify(initialMedicalData)));
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [editValue, setEditValue] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const searchParams = useSearchParams();
 
   const currentWords = medicalData[selectedCategory];
-
 
   // On mount, if survey responses exist, process them via API
   useEffect(() => {
@@ -222,7 +223,7 @@ export default function MedicalAACGrid() {
           if (res.ok && data.message) {
             // Assume the API returns a comma-separated string or an array of words
             const words = typeof data.message === "string"
-              ? data.message.match(/"([^"]+)"/g)?.map(word => word.replace(/"/g, "").trim()) || []
+              ? data.message.match(/"([^"]+)"/g)?.map((word: string) => word.replace(/"/g, "").trim()) || []
               : [];
             setMedicalData(prev => ({
               ...prev,
@@ -240,12 +241,12 @@ export default function MedicalAACGrid() {
     }
   }, [searchParams]);
 
-  const handleCategoryClick = (category: string) => {
+  const handleCategoryClick = (category: MedicalCategory): void => {
     setSelectedCategory(category);
     setEditingIndex(null);
   };
 
-  const handleWordClick = (word: string, index: number) => {
+  const handleWordClick = (word: string, index: number): void => {
     if (editingIndex !== null || !word) return;
     if (typeof window !== "undefined" && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(word);
@@ -253,12 +254,12 @@ export default function MedicalAACGrid() {
     }
   };
 
-  const startEditing = (index: number) => {
+  const startEditing = (index: number): void => {
     setEditingIndex(index);
     setEditValue(currentWords[index] || "");
   };
 
-  const saveEdit = () => {
+  const saveEdit = (): void => {
     const newWords = [...currentWords];
     if (editingIndex !== null) {
       newWords[editingIndex] = editValue;
@@ -270,7 +271,7 @@ export default function MedicalAACGrid() {
     }
   };
 
-  const resetAll = () => {
+  const resetAll = (): void => {
     if (confirm("Are you sure you want to reset all boxes to their default values?")) {
       setMedicalData(JSON.parse(JSON.stringify(initialMedicalData)));
       setEditingIndex(null);
@@ -308,7 +309,7 @@ export default function MedicalAACGrid() {
           {Object.keys(medicalData).map((category) => (
             <button
               key={category}
-              onClick={() => handleCategoryClick(category)}
+              onClick={() => handleCategoryClick(category as MedicalCategory)}
               className={`w-full text-left py-3 px-2 my-1 text-lg font-bold tracking-tight
                 ${selectedCategory === category 
                   ? "text-white bg-gray-800" 
@@ -322,7 +323,7 @@ export default function MedicalAACGrid() {
 
         {/* Word Grid */}
         <div className="flex-1 grid grid-cols-4 grid-rows-6 gap-3 p-4 ml-4">
-          {currentWords.map((word, index) => (
+          {currentWords.map((word: string, index: number): ReactElement => (
             <div
               key={`${selectedCategory}-${index}`}
               className={`border-2 rounded-lg p-2 flex flex-col items-center justify-center 
@@ -393,5 +394,14 @@ export default function MedicalAACGrid() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Main component with Suspense boundary
+export default function MedicalAACGrid() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GridContent />
+    </Suspense>
   );
 }

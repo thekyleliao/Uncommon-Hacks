@@ -5,6 +5,11 @@ import { NextResponse } from "next/server";
 const API_KEY = process.env.API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
+interface IconWordPair {
+  icon: string;
+  word: string;
+}
+
 // Handle GET request
 export async function GET() {
   try {
@@ -38,9 +43,13 @@ Ensure you provide 24 objects.`;
       contents: fullPrompt,
     });
 
+    if (!response.text) {
+      throw new Error("No response text received from AI");
+    }
+
     // Option 1: If the response.text is already valid JSON,
     // you can try to parse it before returning.
-    let parsed;
+    let parsed: IconWordPair[];
     try {
       parsed = JSON.parse(response.text);
     } catch (err) {

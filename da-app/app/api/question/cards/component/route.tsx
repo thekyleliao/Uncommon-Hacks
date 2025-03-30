@@ -7,10 +7,15 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const component_prompt = "Data is given below. Format final answer as JSON Pairs. For each idea, create a JSON pair of that idea with the name of an appropriate react-icons icon.";
 
-// In-memory store for questions and responses
-let memoryStore = [];
+interface MemoryData {
+  question: string;
+  response: string;
+}
 
-function updateMemory(dataToSave) {
+// In-memory store for questions and responses
+let memoryStore: MemoryData[] = [];
+
+function updateMemory(dataToSave: MemoryData): void {
     try {
         // Clear the existing memory store and replace it with the new data
         memoryStore = [dataToSave];
@@ -40,7 +45,11 @@ export async function POST(req: Request) {
         console.log("Gemini Response:", response.text);
 
         // Save the Gemini response into memory
-        const dataToSave = {
+        if (!response.text) {
+            throw new Error("No response text received from Gemini");
+        }
+
+        const dataToSave: MemoryData = {
             question: rawData,
             response: response.text,
         };

@@ -5,11 +5,16 @@ import { NextResponse } from "next/server";
 const API_KEY = process.env.API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
+interface MemoryData {
+    question: string;
+    response: string | undefined;
+}
+
 // In-memory store for questions and responses
-let memoryStore = [];
+let memoryStore: MemoryData[] = [];
 
 // Function to update in-memory storage with new data
-function updateMemory(dataToSave) {
+function updateMemory(dataToSave: MemoryData): void {
     try {
         memoryStore.push(dataToSave);
         console.log(memoryStore);
@@ -20,7 +25,7 @@ function updateMemory(dataToSave) {
 }
 
 // Helper function for the cards logic
-async function processCards(rawData) {
+async function processCards(rawData: string): Promise<string | undefined> {
     const component_prompt = "Data is given below. The data is formatted as questions and answers. You will come up with a list of 24 short ideas(1-5 words) related to these questions and answers. Format final answer as JSON LIST.";
 
     const prompt = `${component_prompt}\n\n${rawData}`;
@@ -34,7 +39,7 @@ async function processCards(rawData) {
 }
 
 // Helper function for the component logic
-async function processComponent(rawData) {
+async function processComponent(rawData: string): Promise<string | undefined> {
     const component_prompt = "Data is given below. For each idea, create a JSON List with 24 appropriate words. Be less scientific. Be more patient friendly.";
 
     const prompt = `${component_prompt}\n\n${rawData}`;
@@ -58,7 +63,7 @@ export async function POST(req: Request) {
 
         console.log("AI Response:", response.text);
 
-        const dataToSave = {
+        const dataToSave: MemoryData = {
             question: prompt || "What is AI?",
             response: response.text,
         };
@@ -70,15 +75,17 @@ export async function POST(req: Request) {
         const questionsCount = memoryStore.reduce((count, item) => (item.question ? count + 1 : count), 0);
         console.log(questionsCount, "cooked");
 
-        let componentResponse = null;
+        let componentResponse: string | undefined = undefined;
 
         if (questionsCount >= 1) {
             try {
                 const cardsResponse = await processCards(JSON.stringify(memoryStore));
                 console.log("Cards Processed:", cardsResponse);
 
-                componentResponse = await processComponent(cardsResponse);
-                console.log("Component Processed:", componentResponse);
+                if (cardsResponse) {
+                    componentResponse = await processComponent(cardsResponse);
+                    console.log("Component Processed:", componentResponse);
+                }
             } catch (error) {
                 console.error("Error processing cards or component:", error);
             }
@@ -86,7 +93,6 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ 
             message: componentResponse  
-            
         });
     } catch (error) {
         console.error("Error processing request:", error);

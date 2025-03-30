@@ -3,6 +3,13 @@
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from 'react';
 
+type VideoStatus = 'loading' | 'playing' | 'error' | 'autoplay-blocked';
+
+interface VideoState {
+  status: VideoStatus;
+  error: string | null;
+}
+
 const Home = () => {
   const videoAssets = [
     {
@@ -40,7 +47,7 @@ const Home = () => {
   ];
 
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [videoState, setVideoState] = useState({
+  const [videoState, setVideoState] = useState<VideoState>({
     status: 'loading',
     error: null
   });

@@ -3,19 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-// Define the structure for each question node.
-type QuestionNode = {
-  id: number;
-  question: string;
-  options: string[];
-  allowCustom?: boolean;
-  // Return the next question id (or null if finished) based on the current answers.
-  getNext: (answers: string[]) => number | null;
-};
+import { QuestionNode, QuestionTree, SurveyAnswers } from "@/types";
 
 // Our question flow:
-const questionTree: { [key: number]: QuestionNode } = {
+const questionTree: QuestionTree = {
   1: {
     id: 1,
     question: "What does the patient need to communitcate?",
@@ -147,23 +138,16 @@ const questionTree: { [key: number]: QuestionNode } = {
 export default function PatientQuestionnaire() {
   const router = useRouter();
 
-  // Track the current question id.
   const [currentQId, setCurrentQId] = useState<number>(1);
-  // History stack for back navigation.
   const [history, setHistory] = useState<number[]>([]);
-  // Store answers as an object: key = question id, value = array of responses.
-  const [answers, setAnswers] = useState<Record<number, string[]>>({});
-  // Local state for current question's selections.
+  const [answers, setAnswers] = useState<SurveyAnswers>({});
   const [currentSelection, setCurrentSelection] = useState<string[]>([]);
-  // For questions that allow custom input.
-  const [customInput, setCustomInput] = useState("");
-  // Loading flag for the API call.
-  const [loading, setLoading] = useState(false);
+  const [customInput, setCustomInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const currentQuestion = questionTree[currentQId];
 
-  // Toggle a selection.
-  const toggleOption = (option: string) => {
+  const toggleOption = (option: string): void => {
     // For yes/no questions, force single selection.
     if (
       currentQuestion.options.length === 2 &&
@@ -180,8 +164,17 @@ export default function PatientQuestionnaire() {
     }
   };
 
-  // When the user clicks "Next" on a non-final question.
-  const handleNext = async () => {
+  const handleBack = (): void => {
+    if (history.length > 0) {
+      const previousQId = history[history.length - 1];
+      setHistory(history.slice(0, -1));
+      setCurrentQId(previousQId);
+      setCurrentSelection(answers[previousQId] || []);
+      setCustomInput("");
+    }
+  };
+
+  const handleNext = async (): Promise<void> => {
     let combinedAnswers = currentSelection;
     if (currentQuestion.allowCustom && customInput.trim() !== "") {
       combinedAnswers = [...currentSelection, customInput.trim()];
@@ -210,9 +203,7 @@ export default function PatientQuestionnaire() {
     }
   };
 
-  // This function is called when question 10 is answered.
-  // It compiles all responses into one string and sends it to the API.
-  const handleSubmit = async (lastAnswers: string[]) => {
+  const handleSubmit = async (lastAnswers: string[]): Promise<void> => {
     // Save last question's answers.
     const finalResponses = { ...answers, [currentQId]: lastAnswers };
 
@@ -251,26 +242,6 @@ export default function PatientQuestionnaire() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Handle Back button press.
-  const handleBack = () => {
-    if (history.length === 0) return;
-    const prevHistory = [...history];
-    const previousQId = prevHistory.pop()!;
-    setHistory(prevHistory);
-    setCurrentQId(previousQId);
-
-    // Restore previously saved answers for that question if available.
-    const prevAnswers = answers[previousQId] || [];
-    setCurrentSelection(
-      prevAnswers.filter((a) => questionTree[previousQId].options.includes(a))
-    );
-    // Restore custom input if any.
-    const custom = prevAnswers.find(
-      (a) => !questionTree[previousQId].options.includes(a)
-    );
-    setCustomInput(custom || "");
   };
 
   return (
