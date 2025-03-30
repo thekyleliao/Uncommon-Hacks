@@ -72,4 +72,29 @@ body {
   svg {
     fill: currentColor !important;
   }
+
+  /* Hide edit buttons in print */
+  button[class*="opacity-0"] {
+    display: none !important;
+  }
+
+  /* Ensure proper page breaks */
+  .grid {
+    page-break-inside: avoid;
+  }
+
+  /* Optimize card borders for print */
+  .border-2 {
+    border-width: 1px !important;
+  }
+
+  /* Ensure proper spacing in print */
+  .p-4 {
+    padding: 0.5rem !important;
+  }
+
+  /* Make sure the grid items are properly sized */
+  .min-h-[90px] {
+    min-height: 80px !important;
+  }
 }
