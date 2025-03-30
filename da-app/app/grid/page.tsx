@@ -200,6 +200,7 @@ function GridContent() {
   const [highContrast, setHighContrast] = useState<boolean>(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [generating, setGenerating] = useState<boolean>(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const searchParams = useSearchParams();
 
   const currentWords = medicalData[selectedCategory];
@@ -429,26 +430,53 @@ function GridContent() {
       )}
 
       {/* Main Grid Area */}
-      <div className="flex-1 flex max-w-6xl w-full mx-auto">
+      <div className="flex-1 flex max-w-6xl w-full mx-auto relative">
+        {/* Mobile Sidebar Toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="lg:hidden fixed top-20 left-4 z-50 bg-gray-800 text-white p-2 rounded-lg border border-gray-700"
+        >
+          {sidebarOpen ? '←' : '→'}
+        </button>
+
         {/* Category Selector */}
-        <div className="w-48 flex-shrink-0 border-r border-gray-700 pr-4">
-          {Object.keys(medicalData).map((category) => (
-            <button
-              key={category}
-              onClick={() => handleCategoryClick(category as MedicalCategory)}
-              className={`w-full text-left py-3 px-2 my-1 text-lg font-bold tracking-tight
-                ${selectedCategory === category 
-                  ? "text-white bg-gray-800" 
-                  : "text-gray-400 hover:text-white hover:bg-gray-900"}
-                transition-all duration-200 rounded-lg`}
-            >
-              {category.toUpperCase()}
-            </button>
-          ))}
+        <div className={`
+          fixed lg:static inset-y-0 left-0 z-40
+          w-48 flex-shrink-0 border-r border-gray-700 bg-black
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          <div className="p-4">
+            {Object.keys(medicalData).map((category) => (
+              <button
+                key={category}
+                onClick={() => {
+                  handleCategoryClick(category as MedicalCategory);
+                  // Close sidebar on mobile after selection
+                  if (window.innerWidth < 1024) {
+                    setSidebarOpen(false);
+                  }
+                }}
+                className={`w-full text-left py-3 px-2 my-1 text-lg font-bold tracking-tight
+                  ${selectedCategory === category 
+                    ? "text-white bg-gray-800" 
+                    : "text-gray-400 hover:text-white hover:bg-gray-900"}
+                  transition-all duration-200 rounded-lg`}
+              >
+                {category.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Word Grid */}
-        <div className="flex-1 grid grid-cols-4 grid-rows-6 gap-3 p-4 ml-4">
+        <div className={`
+          flex-1 grid gap-3 p-4
+          grid-cols-2 sm:grid-cols-3 lg:grid-cols-4
+          grid-rows-12 sm:grid-rows-8 lg:grid-rows-6
+          transition-all duration-300
+          ${sidebarOpen ? 'lg:ml-4' : 'ml-0'}
+        `}>
           {currentWords.map((word: string, index: number): ReactElement => (
             <div
               key={`${selectedCategory}-${index}`}
@@ -459,7 +487,7 @@ function GridContent() {
               onDrop={() => handleDrop(index)}
               className={`border-2 rounded-lg p-2 flex flex-col items-center justify-center 
                 hover:border-white hover:bg-gray-900 transition-all duration-200
-                h-full min-h-[90px] relative cursor-move
+                h-full min-h-[70px] sm:min-h-[80px] lg:min-h-[90px] relative cursor-move
                 ${word ? "border-gray-700" : "border-dashed border-gray-500"}
                 ${draggedIndex === index ? "opacity-50" : ""}
                 ${editingIndex === index ? "cursor-text" : ""}`}
