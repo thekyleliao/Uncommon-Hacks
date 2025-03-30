@@ -197,9 +197,19 @@ function GridContent() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [highContrast, setHighContrast] = useState<boolean>(false);
   const searchParams = useSearchParams();
 
   const currentWords = medicalData[selectedCategory];
+
+  // Add effect to handle high contrast mode
+  useEffect(() => {
+    if (highContrast) {
+      document.body.classList.add('high-contrast');
+    } else {
+      document.body.classList.remove('high-contrast');
+    }
+  }, [highContrast]);
 
   // On mount, if survey responses exist, process them via API
   useEffect(() => {
@@ -290,18 +300,31 @@ function GridContent() {
     <main className="min-h-screen bg-black text-white flex flex-col p-4">
       {/* Header */}
       <header className="w-full max-w-6xl mx-auto mb-6 flex justify-between items-center border-b border-gray-700 pb-4">
-        <Link href="/" className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors">
-          ← MEDICAL AAC
-        </Link>
-        <button 
-          onClick={resetAll}
-          className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors"
-        >
-          RESET ALL
-        </button>
-        <button onClick={() => window.print()} className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors">
-          PRINT
-        </button>
+        <div className="flex items-center space-x-4">
+          <Link href="/" className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors">
+            ← MEDICAL AAC
+          </Link>
+          <button
+            onClick={() => setHighContrast(!highContrast)}
+            className="px-3 py-1 text-sm font-bold rounded-full border-2 transition-colors
+              ${highContrast 
+                ? 'bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-500' 
+                : 'bg-transparent text-white border-white hover:bg-white hover:text-black'}"
+          >
+            {highContrast ? 'HIGH CONTRAST ON' : 'HIGH CONTRAST OFF'}
+          </button>
+        </div>
+        <div className="flex space-x-4">
+          <button 
+            onClick={resetAll}
+            className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors"
+          >
+            RESET ALL
+          </button>
+          <button onClick={() => window.print()} className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors">
+            PRINT
+          </button>
+        </div>
       </header>
 
       {loading && (
