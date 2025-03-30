@@ -199,6 +199,7 @@ function GridContent() {
   const [loading, setLoading] = useState<boolean>(false);
   const [highContrast, setHighContrast] = useState<boolean>(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [generating, setGenerating] = useState<boolean>(false);
   const searchParams = useSearchParams();
 
   const currentWords = medicalData[selectedCategory];
@@ -334,6 +335,55 @@ function GridContent() {
     setDraggedIndex(null);
   };
 
+  const generateNewCards = async () => {
+    if (generating) return; // Prevent multiple simultaneous requests
+    
+    try {
+      setGenerating(true);
+      setLoading(true); // Show loading state
+      
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
+      const res = await fetch("/api/question", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          prompt: "Generate 24 random medical communication words that are commonly needed in a hospital setting. Format as a JSON list of strings."
+        })
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to generate new cards");
+      }
+
+      const data = await res.json();
+      if (data.message) {
+        const words = typeof data.message === "string"
+          ? data.message.match(/"([^"]+)"/g)?.map((word: string) => word.replace(/"/g, "").trim()) || []
+          : [];
+        
+        // Only update state if we have valid words
+        if (words.length > 0) {
+          setMedicalData(prev => ({
+            ...prev,
+            "Patient Specific": words.slice(0, 24)
+          }));
+        } else {
+          throw new Error("No valid words generated");
+        }
+      }
+    } catch (error) {
+      console.error("Error generating new cards:", error);
+      alert("Failed to generate new cards. Please try again.");
+    } finally {
+      setGenerating(false);
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-black text-white flex flex-col p-4">
       {/* Header */}
@@ -353,6 +403,13 @@ function GridContent() {
           </button>
         </div>
         <div className="flex space-x-4">
+          <button 
+            onClick={generateNewCards}
+            disabled={generating}
+            className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors disabled:opacity-50"
+          >
+            {generating ? 'GENERATING...' : 'NEW CARDS'}
+          </button>
           <button 
             onClick={resetAll}
             className="text-xl font-bold tracking-tight hover:text-gray-300 transition-colors"
