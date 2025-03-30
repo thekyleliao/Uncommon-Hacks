@@ -20,16 +20,36 @@ export async function GET() {
   }
 }
 
-// Handle POST request (Optional: Use for custom prompts)
+// Handle POST request (for custom prompts)
 export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
+    
+    // Ensure your prompt instructs the AI to output valid JSON.
+    const fullPrompt = `${prompt}\n\nPlease return the output as valid JSON in the following format:
+[
+  { "icon": "URL_or_icon_identifier", "word": "Your Treatment Word" },
+  ...
+]
+Ensure you provide 24 objects.`;
+
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: prompt || "What is AI?",
+      contents: fullPrompt,
     });
 
-    return NextResponse.json({ message: response.text });
+    // Option 1: If the response.text is already valid JSON,
+    // you can try to parse it before returning.
+    let parsed;
+    try {
+      parsed = JSON.parse(response.text);
+    } catch (err) {
+      // If parsing fails, return the raw text for debugging.
+      console.error("Error parsing AI response:", err);
+      return NextResponse.json({ error: "Invalid JSON output from AI", raw: response.text }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: parsed });
   } catch (error) {
     console.error("Error processing request:", error);
     return NextResponse.json({ error: "Failed to get AI response" }, { status: 500 });
