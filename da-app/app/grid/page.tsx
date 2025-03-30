@@ -198,6 +198,7 @@ function GridContent() {
   const [editValue, setEditValue] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [highContrast, setHighContrast] = useState<boolean>(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const searchParams = useSearchParams();
 
   const currentWords = medicalData[selectedCategory];
@@ -296,6 +297,43 @@ function GridContent() {
     }
   };
 
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('border-yellow-400');
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove('border-yellow-400');
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const newWords = [...currentWords];
+    const [draggedWord] = newWords.splice(draggedIndex, 1);
+    newWords.splice(dropIndex, 0, draggedWord);
+
+    // Update the medical data while preserving the icon mapping
+    setMedicalData(prev => ({
+      ...prev,
+      [selectedCategory]: newWords
+    }));
+
+    // If we're in a non-custom category, update the initial data to match
+    if (selectedCategory !== "Custom") {
+      const newInitialWords = [...initialMedicalData[selectedCategory]];
+      const [draggedInitialWord] = newInitialWords.splice(draggedIndex, 1);
+      newInitialWords.splice(dropIndex, 0, draggedInitialWord);
+      initialMedicalData[selectedCategory] = newInitialWords;
+    }
+
+    setDraggedIndex(null);
+  };
+
   return (
     <main className="min-h-screen bg-black text-white flex flex-col p-4">
       {/* Header */}
@@ -357,10 +395,17 @@ function GridContent() {
           {currentWords.map((word: string, index: number): ReactElement => (
             <div
               key={`${selectedCategory}-${index}`}
+              draggable={!!word}
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={() => handleDrop(index)}
               className={`border-2 rounded-lg p-2 flex flex-col items-center justify-center 
                 hover:border-white hover:bg-gray-900 transition-all duration-200
-                h-full min-h-[90px] relative
-                ${word ? "border-gray-700" : "border-dashed border-gray-500"}`}
+                h-full min-h-[90px] relative cursor-move
+                ${word ? "border-gray-700" : "border-dashed border-gray-500"}
+                ${draggedIndex === index ? "opacity-50" : ""}
+                ${editingIndex === index ? "cursor-text" : ""}`}
               onClick={() => handleWordClick(word, index)}
             >
               {editingIndex === index ? (
